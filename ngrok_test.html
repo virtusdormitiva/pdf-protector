@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ngrok Warning Bypass Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            background-color: #f8f8f8;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .method {
+            background-color: #ecf0f1;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 4px 4px 0 0;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            color: #333;
+        }
+        .tab button:hover {
+            background-color: #ddd;
+        }
+        .tab button.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .tabcontent {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>How to Skip the Ngrok Browser Warning</h1>
+    
+    <p>
+        When accessing a website through ngrok's free tier, users often encounter a warning page that looks like:
+    </p>
+    
+    <div class="method">
+        <p><strong>You are about to visit: example.ngrok-free.app</strong></p>
+        <p>Website IP: xxx.xxx.xxx.xxx</p>
+        <p>This website is served for free through ngrok.com.<br>
+           You should only visit this website if you trust whoever sent the link to you.<br>
+           Be careful about disclosing personal or financial information like passwords, phone numbers, or credit cards.</p>
+        <p><button disabled>Visit Site</button></p>
+    </div>
+    
+    <p>
+        This warning serves as a security measure but can be bypassed legitimately when:
+    </p>
+    <ul>
+        <li>You're the developer and want to test your application</li>
+        <li>You want to provide a seamless experience to your users</li>
+        <li>You're integrating with APIs or services that need direct access</li>
+    </ul>
+
+    <div class="tab">
+        <button class="tablinks active" onclick="openMethod(event, 'BrowserMethod')">For Browser Users</button>
+        <button class="tablinks" onclick="openMethod(event, 'DevMethod')">For Developers</button>
+        <button class="tablinks" onclick="openMethod(event, 'TestTool')">Test Tool</button>
+    </div>
+
+    <div id="BrowserMethod" class="tabcontent" style="display: block;">
+        <h2>Browser Extension Method</h2>
+        <p>The easiest way for regular users to bypass the warning:</p>
+        
+        <div class="method">
+            <h3>Using a Browser Extension</h3>
+            <p>Install the "Requestly" extension (available for Chrome, Firefox, Edge):</p>
+            <ol>
+                <li>Install <a href="https://chrome.google.com/webstore/detail/requestly-modify-headers/mdnleldcmiljblolnjhpnblkcekpdkpa" target="_blank">Requestly</a> from your browser's extension store</li>
+                <li>Create a new rule to "Modify Headers"</li>
+                <li>Add a request header: <code>ngrok-skip-browser-warning</code> with any value (like <code>true</code>)</li>
+                <li>Set it to apply to URLs containing "ngrok-free.app"</li>
+                <li>Save the rule and refresh the ngrok page</li>
+            </ol>
+        </div>
+
+        <h3>Bookmarklet Method</h3>
+        <p>Create a bookmarklet that adds the header and reloads the page:</p>
+        <ol>
+            <li>Create a new bookmark in your browser</li>
+            <li>Set the name to "Skip Ngrok Warning"</li>
+            <li>Copy and paste the following code as the URL:</li>
+        </ol>
+        <pre><code>javascript:(function() {
+  localStorage.setItem('ngrok-skip-browser-warning', 'true');
+  location.reload();
+})();</code></pre>
+        <p>When you're on the ngrok warning page, click this bookmark to bypass it.</p>
+    </div>
+
+    <div id="DevMethod" class="tabcontent">
+        <h2>For Developers</h2>
+        <p>There are several ways to programmatically skip the ngrok warning:</p>
+
+        <div class="method">
+            <h3>Method 1: Add Request Header in Code</h3>
+            <p>When making HTTP requests to ngrok URLs, add the header <code>ngrok-skip-browser-warning</code> with any value:</p>
+            
+            <h4>JavaScript/Fetch API Example:</h4>
+            <pre><code>fetch('https://your-app.ngrok-free.app/endpoint', {
+  headers: {
+    'ngrok-skip-browser-warning': 'true'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data));</code></pre>
+
+            <h4>Axios Example:</h4>
+            <pre><code>axios.get('https://your-app.ngrok-free.app/endpoint', {
+  headers: {
+    'ngrok-skip-browser-warning': 'true'
+  }
+})
+.then(response => {
+  console.log(response.data);
+});</code></pre>
+
+            <h4>Python Requests Example:</h4>
+            <pre><code>import requests
+
+response = requests.get(
+    'https://your-app.ngrok-free.app/endpoint',
+    headers={'ngrok-skip-browser-warning': 'true'}
+)
+print(response.json())</code></pre>
+        </div>
+
+        <div class="method">
+            <h3>Method 2: Custom User-Agent</h3>
+            <p>Alternatively, you can set a custom (non-standard) User-Agent header:</p>
+            
+            <pre><code>fetch('https://your-app.ngrok-free.app/endpoint', {
+  headers: {
+    'User-Agent': 'your-custom-agent'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data));</code></pre>
+        </div>
+
+        <div class="method">
+            <h3>Method 3: Server-Side Solution (Flask)</h3>
+            <p>Add a decorator to all responses in your Flask application:</p>
+            
+            <pre><code>@app.after_request
+def add_ngrok_skip_browser_warning(response):
+    response.headers["ngrok-skip-browser-warning"] = "true"
+    return response</code></pre>
+            
+            <p>This adds the header to all outgoing responses, but clients will still need to include it in their requests!</p>
+        </div>
+    </div>
+
+    <div id="TestTool" class="tabcontent">
+        <h2>Test the Header</h2>
+        <p>Click the button below to make a request to the current page with the <code>ngrok-skip-browser-warning</code> header:</p>
+        
+        <button id="testButton">Test Ngrok Header</button>
+        <div id="result"></div>
+
+        <h3>View the Current URL</h3>
+        <p>Your current URL: <code id="currentUrl"></code></p>
+
+        <h3>Create a Link with the Header</h3>
+        <p>Use this link to access your ngrok URL directly (bypassing the warning):</p>
+        <div id="directLink"></div>
+    </div>
+
+    <script>
+        // Tab functionality
+        function openMethod(evt, methodName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(methodName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        // Display current URL
+        document.getElementById('currentUrl').textContent = window.location.href;
+
+        // Generate direct link
+        const baseUrl = window.location.href.split('?')[0].split('#')[0];
+        const directLinkElem = document.getElementById('directLink');
+        const directLinkUrl = `https://your-app.ngrok-free.app/your-page`;
+        directLinkElem.innerHTML = `
+            <p>Replace this URL with your actual ngrok URL:</p>
+            <pre><code>${directLinkUrl}</code></pre>
+            <p>Then access it programmatically with the header, or use a tool like Requestly to automatically add the header.</p>
+        `;
+
+        // Test button functionality
+        document.getElementById('testButton').addEventListener('click', function() {
+            const resultElement = document.getElementById('result');
+            resultElement.style.display = 'block';
+            
+            fetch(window.location.href, {
+                headers: {
+                    'ngrok-skip-browser-warning': 'true'
+                }
+            })
+            .then(response => {
+                resultElement.innerHTML = `
+                    <h4>Success! Request made with header:</h4>
+                    <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                    <p>The request was successful. This confirms that your browser can send the header correctly.</p>
+                    <p>If you're still seeing the ngrok warning, try:</p>
+                    <ul>
+                        <li>Clearing your browser cache</li>
+                        <li>Using a browser extension like Requestly</li>
+                        <li>Accessing the page from a different browser or device</li>
+                        <li>Verifying that your server is correctly implementing the header</li>
+                    </ul>
+                `;
+                resultElement.className = 'success';
+            })
+            .catch(error => {
+                resultElement.innerHTML = `<p>Error: ${error.message}</p>`;
+                resultElement.className = 'error';
+            });
+        });
+
+        // Store 'true' in localStorage to help some browser-based solutions
+        localStorage.setItem('ngrok-skip-browser-warning', 'true');
+    </script>
+</body>
+</html>
+

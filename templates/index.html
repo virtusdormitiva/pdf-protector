@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Protector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* Additional styles for download section */
+        .highlight-section {
+            border: 2px solid #4CAF50;
+            background-color: #f8fff8;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .highlight {
+            animation: highlight-pulse 1s ease-in-out;
+        }
+        
+        @keyframes highlight-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+        
+        .download-section h2 {
+            color: #2e7d32;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        
+        .success-icon {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .success-icon i {
+            font-size: 48px;
+            color: #4CAF50;
+        }
+        
+        .debug-info {
+            background-color: #f0f9f0;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .debug-title {
+            font-weight: bold;
+            margin: 5px 0;
+            color: #555;
+        }
+        
+        .debug-value {
+            margin: 5px 0 15px;
+            word-break: break-all;
+        }
+        
+        .debug-value.success {
+            color: #2e7d32;
+        }
+        
+        .protection-note {
+            font-size: 16px;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 18px;
+            padding: 15px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .download-btn:hover {
+            background-color: #2e7d32;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .download-btn.pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+        
+        .download-note {
+            font-size: 14px;
+            color: #777;
+            margin-top: 15px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Debug Panel - Always visible for debugging -->
+        <div class="debug-panel" style="position: fixed; top: 10px; right: 10px; background: #f0f9ff; border: 1px solid #cce5ff; border-radius: 5px; padding: 10px; font-size: 12px; z-index: 1000; max-width: 350px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+            <div style="font-weight: bold; margin-bottom: 5px; color: #004085;">Información de Depuración</div>
+            <div style="border-bottom: 1px solid #b8daff; margin-bottom: 8px;"></div>
+            
+            {% if session %}
+            <div style="margin-bottom: 5px;">Sesión existe: <span style="color: #28a745;">SÍ</span></div>
+            {% else %}
+            <div style="margin-bottom: 5px;">Sesión existe: <span style="color: #dc3545;">NO</span></div>
+            {% endif %}
+            
+            {% if session.protected_file %}
+            <div style="margin-bottom: 5px;">Archivo protegido: <span style="color: #28a745;">{{ session.protected_file }}</span></div>
+            {% else %}
+            <div style="margin-bottom: 5px;">Archivo protegido: <span style="color: #dc3545;">NO ESTABLECIDO</span></div>
+            {% endif %}
+            
+            {% if session.protected_filename %}
+            <div style="margin-bottom: 5px;">Nombre de archivo protegido: <span style="color: #28a745;">{{ session.protected_filename }}</span></div>
+            {% else %}
+            <div style="margin-bottom: 5px;">Nombre de archivo protegido: <span style="color: #dc3545;">NO ESTABLECIDO</span></div>
+            {% endif %}
+            
+            <div style="font-size: 10px; margin-top: 8px; color: #6c757d;">Este panel es solo para fines de depuración</div>
+        </div>
+        <header>
+            <h1><i class="fas fa-lock"></i> PDF Protector</h1>
+            <p class="subtitle">Protege tus PDFs desactivando los permisos de edición</p>
+        </header>
+
+        <main>
+            <!-- Flash Messages Section -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-message {{ category }}">
+                                {% if category == 'success' %}
+                                    <i class="fas fa-check-circle"></i>
+                                {% else %}
+                                    <i class="fas fa-exclamation-circle"></i>
+                                {% endif %}
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- How it Works Section -->
+            <section class="how-it-works">
+                <h2>Cómo Funciona</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-icon"><i class="fas fa-file-upload"></i></div>
+                        <h3>Subir</h3>
+                        <p>Selecciona tu archivo PDF y súbelo</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon"><i class="fas fa-shield-alt"></i></div>
+                        <h3>Proteger</h3>
+                        <p>Lo aseguraremos para prevenir la edición</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon"><i class="fas fa-download"></i></div>
+                        <h3>Descargar</h3>
+                        <p>Obtén tu archivo PDF protegido</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Upload Form Section -->
+            <section class="upload-section">
+                <div class="upload-container">
+                    <h2>Sube tu PDF</h2>
+                    <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="upload-form">
+                        <div class="file-input-container">
+                            <input type="file" name="file" id="file-input" accept=".pdf" required>
+                            <label for="file-input" class="file-input-label">
+                                <i class="fas fa-file-pdf"></i>
+                                <span id="file-name">Elige un archivo PDF</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-lock"></i> Proteger PDF
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Download Section - Only shown when a file is ready for download -->
+            {% if session.protected_file %}
+            <section id="download-section" class="download-section highlight-section" style="border-width: 3px; animation: highlight-pulse 1.5s ease-in-out infinite;">
+                <div class="success-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2 style="color: #155724; font-size: 32px; text-align: center;">¡Tu PDF está listo para descargar!</h2>
+                <div class="debug-info" style="margin: 20px 0; padding: 20px; background-color: #d4edda; border-color: #c3e6cb;">
+                    <p class="debug-title" style="font-size: 18px;">Estado de Protección:</p>
+                    <p class="debug-value success" style="font-size: 16px;"><i class="fas fa-shield-alt"></i> Protegido Exitosamente</p>
+                    
+                    <p class="debug-title" style="font-size: 18px;">Variables de Sesión:</p>
+                    <p class="debug-value" style="word-break: break-all; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                        <strong>archivo_protegido:</strong> {{ session.protected_file }}<br>
+                        <strong>nombre_archivo_protegido:</strong> {{ session.protected_filename }}
+                    </p>
+                    
+                    <p class="debug-title" style="font-size: 18px;">URL de Descarga:</p>
+                    <p class="debug-value" style="word-break: break-all; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                        {{ url_for('download') }}
+                    </p>
+                </div>
+                
+                <p class="protection-note" style="font-size: 18px; text-align: center;">Tu PDF ha sido protegido exitosamente con acceso de solo lectura. El archivo ahora está seguro contra ediciones mientras sigue permitiendo la lectura.</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a id="download-button" href="{{ url_for('download') }}" class="download-btn pulse" style="font-size: 22px; padding: 18px 36px;">
+                        <i class="fas fa-download"></i> Descargar PDF Protegido
+                    </a>
+                </div>
+                
+                <p class="download-note" style="text-align: center; font-size: 16px;">Tu archivo será eliminado automáticamente después de la descarga por seguridad.</p>
+                
+                <!-- Additional direct download link for troubleshooting -->
+                <div style="margin-top: 25px; text-align: center; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                    <p style="margin-bottom: 10px; font-weight: bold;">¿Problemas para descargar? Prueba este enlace directo:</p>
+                    <a href="{{ url_for('download') }}" style="color: #007bff; text-decoration: underline;" onclick="console.log('Enlace de descarga directo clickeado')">{{ url_for('download', _external=True) }}</a>
+                </div>
+            </section>
+            {% else %}
+            <!-- Debug message when download section is not displayed -->
+            <div style="margin: 20px 0; padding: 10px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px;">
+                <p style="color: #856404; margin: 0;"><i class="fas fa-exclamation-triangle"></i> Depuración: No hay archivo protegido en la sesión. La sección de descarga no se muestra.</p>
+            </div>
+            {% endif %}
+
+            <!-- Features Section -->
+            <section class="features">
+                <h2>Características</h2>
+                <div class="feature-list">
+                    <div class="feature">
+                        <i class="fas fa-eye"></i>
+                        <h3>Acceso de Solo Lectura</h3>
+                        <p>Permite que otros vean tu PDF sin habilitar capacidades de edición</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-ban"></i>
+                        <h3>Protección de Edición</h3>
+                        <p>Previene modificaciones no autorizadas a tu documento</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-lock"></i>
+                        <h3>Seguro</h3>
+                        <p>Tus archivos son procesados de forma segura y no se almacenan permanentemente</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 PDF Protector | Raphael Peña</p>
+        </footer>
+    </div>
+
+    <!-- JavaScript for better user experience -->
+    <script>
+        document.getElementById('file-input').addEventListener('change', function() {
+            const fileName = this.files[0] ? this.files[0].name : 'Elige un archivo PDF';
+            document.getElementById('file-name').textContent = fileName;
+        });
+        
+        // Debug and scroll functions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Log page load and session state
+            console.log('Página cargada - Verificando sección de descarga');
+            
+            // Check for download section
+            const downloadSection = document.querySelector('#download-section');
+            if (downloadSection) {
+                console.log('Sección de descarga ENCONTRADA en la página!', {
+                    elementId: downloadSection.id,
+                    visibility: downloadSection.style.display !== 'none',
+                    dimensions: {
+                        height: downloadSection.offsetHeight + 'px',
+                        width: downloadSection.offsetWidth + 'px'
+                    }
+                });
+                
+                // Log session data for debugging
+                console.log('Datos de sesión disponibles en HTML:', {
+                    hasProtectedFileClass: downloadSection.classList.contains('download-section'),
+                    downloadButton: document.querySelector('#download-button') ? 'Found' : 'Missing'
+                });
+                
+                // Scroll to download section
+                downloadSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Add highlight effect
+                downloadSection.classList.add('highlight');
+                setTimeout(() => {
+                    downloadSection.classList.remove('highlight');
+                }, 2000);
+                
+                // Add click event listener to download button
+                const downloadButton = document.querySelector('#download-button');
+                if (downloadButton) {
+                    console.log('Botón de descarga encontrado y event listener adjuntado');
+                    downloadButton.addEventListener('click', function(e) {
+                        console.log('Botón de descarga clickeado', {
+                            href: this.getAttribute('href'),
+                            timestamp: new Date().toISOString()
+                        });
+                    });
+                } else {
+                    console.error('Botón de descarga no encontrado en la sección de descarga');
+                }
+            } else {
+                console.warn('Sección de descarga NO encontrada en la página - No hay archivo protegido en la sesión');
+            }
+            
+            // Log general session info
+            const debugPanel = document.querySelector('.debug-panel');
+            if (debugPanel) {
+                console.log('Información del panel de depuración disponible en la página');
+            }
+        });
+        
+        // Monitor DOM changes to detect if download section gets added dynamically
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                    for (let i = 0; i < mutation.addedNodes.length; i++) {
+                        const node = mutation.addedNodes[i];
+                        if (node.id === 'download-section') {
+                            console.log('¡Sección de descarga añadida dinámicamente a la página!');
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Start observing the document body for DOM changes
+        observer.observe(document.body, { childList: true, subtree: true });
+    </script>
+</body>
+</html>
+
